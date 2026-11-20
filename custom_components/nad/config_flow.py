@@ -29,6 +29,7 @@ _LOGGER = logging.getLogger(__name__)
 USER_SCHEMA = probatio.Schema(
     {
         probatio.Required(CONF_SERIAL_PORT): SerialPortSelector(),
+        probatio.Optional(CONF_MODEL): str,
     }
 )
 RECONFIGURE_SCHEMA = USER_SCHEMA
@@ -165,12 +166,13 @@ class NADConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             # Validate user input.
             url = user_input[CONF_SERIAL_PORT]
+            model_hint = user_input.get(CONF_MODEL) or None
             self._async_abort_entries_match({CONF_SERIAL_PORT: url})
 
             device = None
             try:
                 # Test if we can connect to the device
-                device = await NADDevice.async_connect(url)
+                device = await NADDevice.async_connect(url, build_hint=model_hint)
 
                 if device.serial_number:
                     await self.async_set_unique_id(device.serial_number)
@@ -246,16 +248,16 @@ class NADConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         reconfigure_entry = self._get_reconfigure_entry()
 
+        build = reconfigure_entry.data.get(CONF_BUILD)
+        model = reconfigure_entry.data.get(CONF_MODEL)
+
         if user_input is not None:
             url = user_input[CONF_SERIAL_PORT]
 
             device = None
             try:
-                # Test if we can connect to the device
-                device = await NADDevice.async_connect(url)
-
-                build = reconfigure_entry.data.get(CONF_BUILD)
-                model = reconfigure_entry.data.get(CONF_MODEL)
+                # Use the stored identity for devices that do not report their model.
+                device = await NADDevice.async_connect(url, build_hint=build or model)
                 if (
                     (
                         device.serial_number

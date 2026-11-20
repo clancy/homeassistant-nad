@@ -8,7 +8,7 @@ import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.nad.const import CONF_BUILD, CONF_SERIAL_PORT, DOMAIN
-from homeassistant.config_entries import SOURCE_DHCP, SOURCE_ZEROCONF
+from homeassistant.config_entries import SOURCE_DHCP, SOURCE_USER, SOURCE_ZEROCONF
 from homeassistant.const import CONF_MAC, CONF_MODEL
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
@@ -35,6 +35,36 @@ ZEROCONF_SERVICE_INFO = ZeroconfServiceInfo(
     name="NAD T757 (NAD905682aabbcc)._telnet._tcp.local.",
     properties={},
 )
+
+
+@pytest.mark.usefixtures("mock_setup_entry")
+async def test_user_model_hint(
+    hass: HomeAssistant, mock_connect: AsyncMock, mock_nad_device: MagicMock
+) -> None:
+    """Test manually configuring a device that does not report its model."""
+    mock_nad_device.build = "M51"
+    mock_nad_device.model = "M51"
+    mock_nad_device.name = "NAD M51"
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "user"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_SERIAL_PORT: URL, CONF_MODEL: "M51"}
+    )
+    await hass.async_block_till_done()
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["title"] == "NAD M51"
+    assert result["data"] == {
+        CONF_SERIAL_PORT: URL,
+        CONF_BUILD: "M51",
+        CONF_MODEL: "M51",
+    }
+    mock_connect.assert_awaited_once_with(URL, build_hint="M51")
 
 
 @pytest.mark.usefixtures("mock_setup_entry")
@@ -204,7 +234,7 @@ async def test_reconfigure(
         CONF_MODEL: MODEL,
     }
     assert mock_rs232_config_entry.title == f"NAD {MODEL}"
-    mock_connect.assert_awaited_once_with(URL)
+    mock_connect.assert_awaited_once_with(URL, build_hint=BUILD)
 
 
 @pytest.mark.usefixtures("mock_setup_entry")

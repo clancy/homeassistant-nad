@@ -182,7 +182,8 @@ NAD devices with an Ethernet port are discovered automatically on your network. 
 - Go to [**Settings > Devices & services**](https://my.home-assistant.io/redirect/integrations).
 - In the bottom right corner, select the [+ Add Integration](https://my.home-assistant.io/redirect/config_flow_start?domain=nad) button.
 - From the list, select **NAD**.
-- Select the serial port or provide the URL.
+- Select the serial port or provide the URL. If the device does not report its model, enter the
+  model as a hint (for example, `M51`).
 
 ⓘ To connect to the Ethernet (telnet) interface of your device use `socket://<ip address>:23`
 
