@@ -1,1 +1,1 @@
-nad_serial==0.0.2
+nad_serial @ git+https://github.com/clancy/nad_serial.py@3640355c5566aa09665ca0a3433df3302a01fa65
